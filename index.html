@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>論文文獻引用格式生成器 - 沛寧老師</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
+        .italic { font-style: italic; }
+        .bold { font-weight: bold; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        
+        <!-- Teacher Credit Bar -->
+        <div class="bg-indigo-900 text-indigo-200 py-1.5 px-6 text-xs text-right border-b border-indigo-800">
+            林口康橋 沛寧老師製作
+        </div>
+
+        <!-- Header -->
+        <div class="bg-indigo-700 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold tracking-wide">論文文獻引用格式自動生成器</h1>
+            <p class="text-indigo-100 mt-2 text-sm opacity-90">遵循專屬投稿格式規範</p>
+        </div>
+
+        <!-- Selection Area -->
+        <div class="p-6 space-y-4 bg-indigo-50 border-b border-indigo-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">第一層：資料大類</label>
+                    <select id="mainCategory" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                        <option value="">請選擇類別...</option>
+                        <option value="book">（一）書籍類</option>
+                        <option value="journal">（二）期刊論文類</option>
+                        <option value="collection">（三）文集論文類</option>
+                        <option value="thesis">（四）博（碩）士論文</option>
+                        <option value="newspaper">（五）報紙文章</option>
+                        <option value="law">（六）法規</option>
+                        <option value="web">（七）網路相關資源</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">第二層：具體格式</label>
+                    <select id="subCategory" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" disabled>
+                        <option value="">請先選擇大類...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form Area -->
+        <div id="formArea" class="p-6 hidden">
+            <h2 id="formTitle" class="text-lg font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-3">資料填入</h2>
+            <div id="inputFields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Dynamic inputs -->
+            </div>
+            <div class="mt-6 flex justify-center">
+                <button id="generateBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-8 rounded-full shadow-md transition duration-200">
+                    生成引用格式
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Area -->
+        <div id="resultArea" class="p-6 hidden border-t border-gray-100 bg-gray-50">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-bold text-gray-600 uppercase tracking-wider">生成結果</span>
+                <button id="copyBtn" class="text-xs bg-gray-200 hover:bg-gray-300 py-1 px-3 rounded shadow-sm transition">複製文字</button>
+            </div>
+            <div id="resultContent" class="p-4 bg-white border border-gray-200 rounded-lg text-gray-800 leading-relaxed min-h-[60px] break-words">
+                <!-- Result string -->
+            </div>
+            <div id="inlineNote" class="mt-2 text-xs text-gray-500 italic"></div>
+        </div>
+        
+        <!-- Footer Info -->
+        <div class="bg-gray-50 p-4 text-center text-xs text-gray-400 border-t border-gray-100">
+            請注意：生成結果僅供參考，請務必再次核對期刊官方最新規範。
+        </div>
+    </div>
+
+    <script>
+        const categories = {
+            book: {
+                label: "書籍類",
+                subs: [
+                    { id: "book_cn", label: "中文格式", fields: ["作者", "出版年", "書名", "出版者", "備註(如：主編、譯者、原作者)"] },
+                    { id: "book_en", label: "英文格式", fields: ["Author", "Year", "Book Title", "Publication Info", "Note(e.g. Eds.)"] },
+                    { id: "book_eb", label: "電子書格式", fields: ["作者", "出版年", "書名", "網址"] }
+                ]
+            },
+            journal: {
+                label: "期刊論文類",
+                subs: [
+                    { id: "journal_cn", label: "中文格式", fields: ["作者", "出版年", "論文篇名", "期刊名", "卷(粗體)", "期", "起訖頁碼"] },
+                    { id: "journal_en", label: "英文格式", fields: ["Author", "Year", "Article Title", "Periodical Name", "Volume(Italic)", "Issue", "Page Range"] },
+                    { id: "journal_eb", label: "電子期刊格式", fields: ["作者", "出版年月日", "文章名稱", "期刊名", "卷", "期", "起訖頁碼", "網址"] }
+                ]
+            },
+            collection: {
+                label: "文集論文類",
+                subs: [
+                    { id: "coll_cn", label: "中文格式", fields: ["作者", "出版年", "篇名", "主編者", "文集名", "起訖頁碼", "出版者"] },
+                    { id: "coll_en", label: "英文格式", fields: ["Author", "Year", "Article Title", "Book Editors", "Book Title", "Page Range", "Publication Info"] }
+                ]
+            },
+            thesis: {
+                label: "博（碩）士論文",
+                subs: [
+                    { id: "thesis_cn", label: "一般格式", fields: ["作者", "出版年", "篇名", "學校研究所所名", "論文類別(碩/博)"] },
+                    { id: "thesis_eb", label: "電子論文格式", fields: ["作者", "出版年", "篇名", "學校研究所所名", "論文類別(碩/博)", "網址"] }
+                ]
+            },
+            newspaper: {
+                label: "報紙文章",
+                subs: [
+                    { id: "news_cn", label: "中文格式", fields: ["作者", "年月日", "篇名", "報紙名", "版次"] },
+                    { id: "news_eb", label: "電子報格式", fields: ["作者", "年月日", "篇名", "電子報名稱", "網址"] }
+                ]
+            },
+            law: {
+                label: "法規",
+                subs: [
+                    { id: "law_single", label: "法規格式", fields: ["法律名稱", "公布日期"] }
+                ]
+            },
+            web: {
+                label: "網路相關資源",
+                subs: [
+                    { id: "web_info", label: "一般網路資料", fields: ["網站名稱", "登載年月日", "文章名稱", "網址"] },
+                    { id: "web_author", label: "有作者的資料", fields: ["作者", "登載年月日", "文章名稱", "網址"] },
+                    { id: "web_nodate", label: "無日期資料", fields: ["作者", "文章名稱", "擷取日期", "網址"] },
+                    { id: "web_yt", label: "YouTube", fields: ["名稱", "登載年月日", "標題", "網址"] },
+                    { id: "web_fb", label: "Facebook", fields: ["名稱", "登載年月日", "標題", "貼文類型(影片/圖片等)", "網址"] },
+                    { id: "web_blog", label: "部落格", fields: ["名稱", "登載年月日", "文章標題", "網址"] }
+                ]
+            }
+        };
+
+        const mainSelect = document.getElementById('mainCategory');
+        const subSelect = document.getElementById('subCategory');
+        const formArea = document.getElementById('formArea');
+        const inputFields = document.getElementById('inputFields');
+        const formTitle = document.getElementById('formTitle');
+        const resultContent = document.getElementById('resultContent');
+        const resultArea = document.getElementById('resultArea');
+        const inlineNote = document.getElementById('inlineNote');
+
+        mainSelect.addEventListener('change', function() {
+            const val = this.value;
+            subSelect.innerHTML = '<option value="">請選擇格式...</option>';
+            formArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            
+            if (val && categories[val]) {
+                subSelect.disabled = false;
+                categories[val].subs.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub.id;
+                    opt.textContent = sub.label;
+                    subSelect.appendChild(opt);
+                });
+            } else {
+                subSelect.disabled = true;
+            }
+        });
+
+        subSelect.addEventListener('change', function() {
+            const mainVal = mainSelect.value;
+            const subVal = this.value;
+            if (!subVal) return;
+
+            const config = categories[mainVal].subs.find(s => s.id === subVal);
+            formTitle.textContent = `${categories[mainVal].label} - ${config.label}`;
+            inputFields.innerHTML = '';
+            
+            config.fields.forEach(f => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label class="block text-sm font-medium text-gray-600 mb-1">${f}</label>
+                    <input type="text" data-field="${f}" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="請輸入${f}">
+                `;
+                inputFields.appendChild(div);
+            });
+
+            formArea.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+        });
+
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            const subId = subSelect.value;
+            const inputs = {};
+            document.querySelectorAll('[data-field]').forEach(input => {
+                inputs[input.getAttribute('data-field')] = input.value.trim();
+            });
+
+            let finalStr = "";
+            let noteStr = "";
+
+            switch(subId) {
+                case "book_cn":
+                    const bnote = inputs["備註(如：主編、譯者、原作者)"];
+                    if (bnote && bnote.includes("譯")) {
+                        finalStr = `${inputs["作者"]}（${bnote}）（${inputs["出版年"]}）。<span class="bold">${inputs["書名"]}</span>（原作者：待補）。${inputs["出版者"]}。（原著出版年：待補）`;
+                        noteStr = `內文引註：(${inputs["作者"]}${bnote}，${inputs["出版年"]})`;
+                    } else if (bnote && bnote.includes("主編")) {
+                        finalStr = `${inputs["作者"]}（主編）（${inputs["出版年"]}）。<span class="bold">${inputs["書名"]}</span>。${inputs["出版者"]}。`;
+                    } else {
+                        finalStr = `${inputs["作者"]}（${inputs["出版年"]}）。<span class="bold">${inputs["書名"]}</span>。${inputs["出版者"]}。`;
+                    }
+                    break;
+                case "book_en":
+                    finalStr = `${inputs["Author"]}. (${inputs["Year"]}). <span class="italic">${inputs["Book Title"]}</span>. ${inputs["Publication Info"]}.`;
+                    break;
+                case "book_eb":
+                    finalStr = `${inputs["作者"]}（${inputs["出版年"]}）。<span class="bold">${inputs["書名"]}</span>。${inputs["網址"]}`;
+                    break;
+                case "journal_cn":
+                    const vol_cn = inputs["卷(粗體)"];
+                    const issue_cn = inputs["期"];
+                    const vPart_cn = vol_cn ? `<span class="bold">${vol_cn}</span>${issue_cn ? `(${issue_cn})` : ""}` : `<span class="bold">${issue_cn}</span>`;
+                    finalStr = `${inputs["作者"]}（${inputs["出版年"]}）。${inputs["論文篇名"]}。<span class="bold">${inputs["期刊名"]}</span>，${vPart_cn}，${inputs["起訖頁碼"]}。`;
+                    break;
+                case "journal_en":
+                    const vol_en = inputs["Volume(Italic)"];
+                    const issue_en = inputs["Issue"];
+                    const vPart_en = vol_en ? `<span class="italic">${vol_en}</span>${issue_en ? `(${issue_en})` : ""}` : `<span class="italic">${issue_en}</span>`;
+                    finalStr = `${inputs["Author"]}. (${inputs["Year"]}). ${inputs["Article Title"]}. <span class="italic">${inputs["Periodical Name"]}</span>, ${vPart_en}, ${inputs["Page Range"]}.`;
+                    break;
+                case "journal_eb":
+                    finalStr = `${inputs["作者"]}（${inputs["出版年月日"]}）。${inputs["文章名稱"]}。<span class="bold">${inputs["期刊名"]}</span>，${inputs["卷"]}（${inputs["期"]}），${inputs["起訖頁碼"]}。${inputs["網址"]}`;
+                    break;
+                case "coll_cn":
+                    finalStr = `${inputs["作者"]}（${inputs["出版年"]}）。${inputs["篇名"]}。載於${inputs["主編者"]}（主編）：<span class="bold">${inputs["文集名"]}</span>（${inputs["起訖頁碼"]}）。${inputs["出版者"]}。`;
+                    break;
+                case "coll_en":
+                    finalStr = `${inputs["Author"]}. (${inputs["Year"]}). ${inputs["Article Title"]}. In ${inputs["Book Editors"]} (Eds.), <span class="italic">${inputs["Book Title"]}</span>(pp. ${inputs["Page Range"]}). ${inputs["Publication Info"]}.`;
+                    break;
+                case "thesis_cn":
+                    // 修正：博碩士論文篇名加粗
+                    finalStr = `${inputs["作者"]}（${inputs["出版年"]}）。<span class="bold">${inputs["篇名"]}</span>。${inputs["學校研究所所名"]}：${inputs["論文類別(碩/博)"]}論文。`;
+                    break;
+                case "thesis_eb":
+                    // 修正：電子論文篇名加粗
+                    finalStr = `${inputs["作者"]}（${inputs["出版年"]}）。<span class="bold">${inputs["篇名"]}</span>。${inputs["學校研究所所名"]}：${inputs["論文類別(碩/博)"]}論文。${inputs["網址"]}`;
+                    break;
+                case "news_cn":
+                    finalStr = `${inputs["作者"]}（${inputs["年月日"]}）。${inputs["篇名"]}。<span class="bold">${inputs["報紙名"]}</span>，${inputs["版次"]}。`;
+                    break;
+                case "news_eb":
+                    finalStr = `${inputs["作者"]}（${inputs["年月日"]}）。${inputs["篇名"]}。${inputs["電子報名稱"]}。${inputs["網址"]}`;
+                    break;
+                case "law_single":
+                    finalStr = `${inputs["法律名稱"]}（${inputs["公布日期"]}）。`;
+                    break;
+                case "web_info":
+                    finalStr = `${inputs["網站名稱"]}（${inputs["登載年月日"]}）。${inputs["文章名稱"]}。${inputs["網址"]}`;
+                    break;
+                case "web_author":
+                    finalStr = `${inputs["作者"]}（${inputs["登載年月日"]}）。${inputs["文章名稱"]}。${inputs["網址"]}`;
+                    break;
+                case "web_nodate":
+                    finalStr = `${inputs["作者"]}（無日期）。${inputs["文章名稱"]}。擷取日期，取自${inputs["網址"]}`;
+                    break;
+                case "web_yt":
+                    finalStr = `${inputs["名稱"]}（${inputs["登載年月日"]}）。${inputs["標題"]}［影片］。YouTube。${inputs["網址"]}`;
+                    break;
+                case "web_fb":
+                    finalStr = `${inputs["名稱"]}（${inputs["登載年月日"]}）。${inputs["標題"]}［${inputs["貼文類型(影片/圖片等)"]}］。Facebook。${inputs["網址"]}`;
+                    break;
+                case "web_blog":
+                    finalStr = `${inputs["名稱"]}（${inputs["登載年月日"]}）。${inputs["文章標題"]}［部落格文章］。${inputs["網址"]}`;
+                    break;
+            }
+
+            resultContent.innerHTML = finalStr;
+            inlineNote.textContent = noteStr;
+            resultArea.classList.remove('hidden');
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const text = resultContent.innerText;
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            
+            const originalText = this.textContent;
+            this.textContent = "已複製！";
+            this.classList.replace('bg-gray-200', 'bg-green-200');
+            setTimeout(() => {
+                this.textContent = originalText;
+                this.classList.replace('bg-green-200', 'bg-gray-200');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
